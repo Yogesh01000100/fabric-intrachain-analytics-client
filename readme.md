@@ -1,40 +1,39 @@
-Dependencies: 
+# Dependencies:
+- Node.js
+- Docker and Docker Compose
+- Python
+- Git
 
-Node.js
-Docker and Docker Compose
-Python
-Git
+## Docker steps:
 
-Docker steps:
-
+```bash
 sudo apt-get update
+```
+```bash
 sudo apt install docker.io
-docker -v (check the version)
+```
+```bash
 newgrp docker
-sudo usermod -aG docker $USER (restart the PC after this step)
+```
+```bash  
+sudo usermod -aG docker $USER    # (restart the PC after this step)
+```
+```bash
 sudo systemctl enable docker
+```
+```bash
 sudo systemctl start docker
-sudo systemctl status docker (exit)
-
+```
+```bash
+sudo systemctl status docker
+```
+```bash
 sudo apt install docker-compose
-docker-compose -v
-
-Run the code
-
-# 1:->    ./install-fabric.sh b
-# 2:->    ./create-network.sh
-
-
-Final step:
-disable firewall access: (if issues occur) sudo ufw disable
-
-Network details:
-
-database: http://localhost:5984/_utils/
-
-environment:
-  - COUCHDB_USER=admin
-  - COUCHDB_PASSWORD=adminpw
-  
-Testing: 
-./tape-Linux-X64 commitOnly --config=config.yaml --number=1000 for blockchain testing
+```
+## Network Creation steps:
+```bash
+./install-fabric.sh b
+```
+```bash
+./create-network.sh
+```
