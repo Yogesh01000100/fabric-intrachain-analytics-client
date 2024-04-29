@@ -6,7 +6,7 @@ import userRoutes from './routes/userRoutes.js';
 const app = express();
 app.use(bodyParser.json());
 
-const mongoURI = 'mongodb+srv://yogesh_d:yogesh890@tradingdb.m930es0.mongodb.net/keys';
+//const mongoURI = 
 
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {

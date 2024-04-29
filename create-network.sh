@@ -14,13 +14,13 @@ cd fabric-samples/test-network
 
 # Package the smart contract (JavaScript version)
 cd ..
-cd asset-transfer-basic/chaincode-javascript
+cd backend/chaincode-javascript
 npm install
 cd ../../test-network
 export PATH=${PWD}/../bin:$PATH
 export FABRIC_CFG_PATH=$PWD/../config/
 
-peer lifecycle chaincode package basic.tar.gz --path ../asset-transfer-basic/chaincode-javascript/ --lang node --label basic_1.0
+peer lifecycle chaincode package basic.tar.gz --path ../backend/chaincode-javascript/ --lang node --label basic_1.0
 
 # Install the chaincode on Org1 and Org2 peers
 export CORE_PEER_TLS_ENABLED=true
@@ -75,4 +75,4 @@ peer chaincode invoke -o localhost:8000 --ordererTLSHostnameOverride orderer.exa
 
 
 # Query the chaincode
-peer chaincode query -C mychannel -n basic -c '{"Args":["commonFunction1"]}'
+# peer chaincode query -C mychannel -n basic -c '{"Args":["GetMyProfilePatient","ab04032a-af7c-51b9-b661-14304ee96848"]}'
