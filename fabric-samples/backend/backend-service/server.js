@@ -17,7 +17,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const startServer = async () => {
   try {
     //await mongoose.connect(config.mongoURI);
-    console.log("MongoDB Connected");
+    //console.log("MongoDB Connected");
 
     // Initialize Fabric Network Gateways
     await initializeGateways(config.userIds);

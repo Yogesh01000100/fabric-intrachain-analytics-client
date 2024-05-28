@@ -241,7 +241,7 @@ export const uploadEHR = async (req, res) => {
       return res.status(400).json({ error: "Request body is empty" });
     }
     const jsonData = JSON.stringify(req.body); // add homomorphic encryption here
-
+    console.log(jsonData);
     // encrypt the data and send to ipfs
 
     

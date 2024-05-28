@@ -37,3 +37,6 @@ sudo apt install docker-compose
 ```bash
 ./create-network.sh
 ```
+```bash
+sudo systemctl start ipfs-node.service  # (start the ipfs node)
+```
