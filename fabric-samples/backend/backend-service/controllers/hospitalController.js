@@ -257,13 +257,14 @@ export const uploadEHR = async (req, res) => {
     const contract = network.getContract(chaincodeName);
     await contract.submitTransaction(
       "UploadEHR",
-      id,
+      3, // add u_id
       JSON.stringify({ LabReports: labreport })
     );
-    id++;
+    //id++;
 
     res.json({
       success: true,
+      cid: cid,
       message: "Data uploaded successfully!",
     });
   } catch (error) {
