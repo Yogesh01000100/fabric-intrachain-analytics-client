@@ -1,13 +1,111 @@
-import { initializeGateways, gateways } from "../network/fabricNetwork.js";
+import { gateways } from "../network/fabricNetwork.js";
 
 import User from "../models/userModel.js";
 import axios from "axios";
 import { create } from "kubo-rpc-client";
+import { spawn } from 'child_process';
 
 const client = create();
 
-let id = 1;
-let count = 0;
+function encryptWithPython(jsonData) {
+  return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python', ['/home/yogesh/intrachain-client-network/ML/encrypt_.py']);
+      
+      let encryptedData = '';
+      pythonProcess.stdout.on('data', (data) => {
+          encryptedData += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+          console.error(`stderr: ${data}`);
+          reject(data.toString());
+      });
+
+      pythonProcess.on('close', (code) => {
+          if (code !== 0) {
+              console.log(`Python script exited with code ${code}`);
+              reject(`Python script exited with code ${code}`);
+          } else {
+              resolve(encryptedData);
+          }
+      });
+
+      pythonProcess.stdin.write(jsonData);
+      pythonProcess.stdin.end();
+  });
+}
+
+export const uploadEHR = async (req, res) => {
+  try {
+    const channelName = "mychannel";
+    const chaincodeName = "basic";
+    const patientId = req.query.userId;
+    const gateway = gateways[patientId];
+
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: "Request body is empty" });
+    }
+    const jsonData = JSON.stringify(req.body);
+    const encryptedData = await encryptWithPython(jsonData);
+
+    // uploading to IPFS
+    const { cid } = await client.add(encryptedData);
+
+    console.log(`File uploaded with CID: ${cid}`);
+
+    const labreport = {
+      disease: {
+        diabetes: cid,
+      },
+    };
+    console.log("from ipfs : ", labreport);
+    // add to blockchain
+    const network = await gateway.getNetwork(channelName);
+    const contract = network.getContract(chaincodeName);
+    await contract.submitTransaction(
+      "UploadEHR",
+      4, // add u_id
+      JSON.stringify({ LabReports: labreport })
+    );
+    //id++;
+
+    res.json({
+      success: true,
+      cid: cid,
+      message: "Data uploaded successfully!",
+    });
+  } catch (error) {
+    console.error(`Error: ${error}`);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const FetchEHR = async (req, res) => {
+  const channelName = "mychannel";
+  const chaincodeName = "basic";
+  const { userId } = req.body;
+  console.log("Id: ", userId);
+  const gateway = gateways['c84c1dd3-8d65-5ba9-996f-84e9dc9599ae'];
+
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: "Request body is empty" });
+  }
+
+  try {
+    const network = await gateway.getNetwork(channelName);
+    const contract = network.getContract(chaincodeName);
+    const result = await contract.evaluateTransaction("FetchEHR", userId);
+    const resultJson = JSON.parse(result.toString());
+    res.json({
+      success: true,
+      message: "Hospital data retrieved successfully!",
+      data: resultJson,
+    });
+  } catch (error) {
+    console.log(`Failed to retrieve data for user ${userId}: ${error}`);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 export const getHospitalRole10 = async (req, res) => {
   const channelName = "mychannel";
@@ -219,76 +317,6 @@ export const getHospitalRole50 = async (req, res) => {
     const result = await contract.evaluateTransaction("commonFunction1");
     const resultJson = JSON.parse(result.toString());
     console.log("data : ", resultJson, "count: ", (count += 1));
-    res.json({
-      success: true,
-      message: "Hospital data retrieved successfully!",
-      data: resultJson,
-    });
-  } catch (error) {
-    console.log(`Failed to retrieve data for user ${userId}: ${error}`);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const uploadEHR = async (req, res) => {
-  try {
-    const channelName = "mychannel";
-    const chaincodeName = "basic";
-    const patientId = req.query.userId;
-    const gateway = gateways[patientId];
-
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({ error: "Request body is empty" });
-    }
-    const jsonData = JSON.stringify(req.body); // add homomorphic encryption here
-    console.log(jsonData);
-    // encrypt the data and send to ipfs
-
-    const { cid } = await client.add(jsonData);
-    console.log(`File uploaded with CID: ${cid}`);
-
-    const labreport = {
-      disease: {
-        diabetes: cid,
-      },
-    };
-    console.log("from ipfs : ", labreport);
-    const network = await gateway.getNetwork(channelName);
-    const contract = network.getContract(chaincodeName);
-    await contract.submitTransaction(
-      "UploadEHR",
-      3, // add u_id
-      JSON.stringify({ LabReports: labreport })
-    );
-    //id++;
-
-    res.json({
-      success: true,
-      cid: cid,
-      message: "Data uploaded successfully!",
-    });
-  } catch (error) {
-    console.error(`Error: ${error}`);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const FetchEHR = async (req, res) => {
-  const channelName = "mychannel";
-  const chaincodeName = "basic";
-  const { userId } = req.body;
-  console.log("Id: ", userId);
-  const gateway = gateways['c84c1dd3-8d65-5ba9-996f-84e9dc9599ae'];
-
-  if (!req.body || Object.keys(req.body).length === 0) {
-    return res.status(400).json({ error: "Request body is empty" });
-  }
-
-  try {
-    const network = await gateway.getNetwork(channelName);
-    const contract = network.getContract(chaincodeName);
-    const result = await contract.evaluateTransaction("FetchEHR", userId);
-    const resultJson = JSON.parse(result.toString());
     res.json({
       success: true,
       message: "Hospital data retrieved successfully!",
