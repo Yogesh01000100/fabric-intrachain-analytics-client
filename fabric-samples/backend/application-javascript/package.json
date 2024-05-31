@@ -7,8 +7,8 @@
         "npm": ">=6"
     },
     "scripts": {
-        "start": "node index.js",
-        "dev": "nodemon backend.js"
+        "start": "node app.js",
+        "dev": "nodemon app.js"
     },
     "engineStrict": true,
     "author": "Hyperledger",

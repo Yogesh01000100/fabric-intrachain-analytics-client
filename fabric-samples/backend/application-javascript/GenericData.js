@@ -555,7 +555,3 @@ const genericData = {
 };
 
 module.exports = genericData;
-
-const jsonString = JSON.stringify(genericData);
-
-console.log(jsonString);

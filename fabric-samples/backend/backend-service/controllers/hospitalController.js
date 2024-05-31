@@ -3,35 +3,36 @@ import { gateways } from "../network/fabricNetwork.js";
 import User from "../models/userModel.js";
 import axios from "axios";
 import { create } from "kubo-rpc-client";
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
 const client = create();
 
 function encryptWithPython(jsonData) {
   return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python', ['/home/yogesh/intrachain-client-network/ML/encrypt_.py']);
-      
-      let encryptedData = '';
-      pythonProcess.stdout.on('data', (data) => {
-          encryptedData += data.toString();
-      });
+    const pythonProcess = spawn("python", [
+      "/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/controllers/python_service.py",
+    ]);
 
-      pythonProcess.stderr.on('data', (data) => {
-          console.error(`stderr: ${data}`);
-          reject(data.toString());
-      });
+    let encryptedData = "";
+    pythonProcess.stdout.on("data", (data) => {
+      encryptedData += data.toString();
+    });
 
-      pythonProcess.on('close', (code) => {
-          if (code !== 0) {
-              console.log(`Python script exited with code ${code}`);
-              reject(`Python script exited with code ${code}`);
-          } else {
-              resolve(encryptedData);
-          }
-      });
+    pythonProcess.stderr.on("data", (data) => {
+      console.error(`stderr: ${data}`);
+      reject(data.toString());
+    });
 
-      pythonProcess.stdin.write(jsonData);
-      pythonProcess.stdin.end();
+    pythonProcess.on("close", (code) => {
+      if (code !== 0) {
+        console.log(`Python script exited with code ${code}`);
+        reject(`Python script exited with code ${code}`);
+      } else {
+        resolve(encryptedData);
+      }
+    });
+    pythonProcess.stdin.write(jsonData);
+    pythonProcess.stdin.end();
   });
 }
 
@@ -48,8 +49,17 @@ export const uploadEHR = async (req, res) => {
     const jsonData = JSON.stringify(req.body);
     const encryptedData = await encryptWithPython(jsonData);
 
-    // uploading to IPFS
-    const { cid } = await client.add(encryptedData);
+    async function addToIpfs(encryptedData) {
+      try {
+        const { cid } = await client.add(encryptedData);
+        console.log(`Data added to IPFS with CID: ${cid}`);
+        return cid;
+      } catch (error) {
+        console.error("Error adding data to IPFS:", error);
+      }
+    }
+
+    const cid = await addToIpfs(encryptedData);
 
     console.log(`File uploaded with CID: ${cid}`);
 
@@ -64,10 +74,9 @@ export const uploadEHR = async (req, res) => {
     const contract = network.getContract(chaincodeName);
     await contract.submitTransaction(
       "UploadEHR",
-      4, // add u_id
+      patientId,
       JSON.stringify({ LabReports: labreport })
     );
-    //id++;
 
     res.json({
       success: true,
@@ -83,9 +92,8 @@ export const uploadEHR = async (req, res) => {
 export const FetchEHR = async (req, res) => {
   const channelName = "mychannel";
   const chaincodeName = "basic";
-  const { userId } = req.body;
-  console.log("Id: ", userId);
-  const gateway = gateways['c84c1dd3-8d65-5ba9-996f-84e9dc9599ae'];
+  const patientId = req.query.userId;
+  const gateway = gateways[patientId];
 
   if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({ error: "Request body is empty" });
@@ -94,7 +102,7 @@ export const FetchEHR = async (req, res) => {
   try {
     const network = await gateway.getNetwork(channelName);
     const contract = network.getContract(chaincodeName);
-    const result = await contract.evaluateTransaction("FetchEHR", userId);
+    const result = await contract.evaluateTransaction("FetchEHR", patientId);
     const resultJson = JSON.parse(result.toString());
     res.json({
       success: true,
@@ -102,7 +110,57 @@ export const FetchEHR = async (req, res) => {
       data: resultJson,
     });
   } catch (error) {
-    console.log(`Failed to retrieve data for user ${userId}: ${error}`);
+    console.log(`Failed to retrieve data for user ${patientId}: ${error}`);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+async function getFile(cid) {
+  let data = [];
+  for await (const chunk of client.cat(cid)) {
+    data.push(chunk);
+  }
+  const fileContent = Buffer.concat(data).toString("utf8");
+  return { fileContent };
+}
+
+export const FetchAllDiabetesRecords = async (req, res) => {
+  const channelName = "mychannel";
+  const chaincodeName = "basic";
+  const adminGateway = gateways["15cf6f0c-c698-5124-96fe-086b68417334"];
+
+  try {
+    const network = await adminGateway.getNetwork(channelName);
+    const contract = network.getContract(chaincodeName);
+    const result = await contract.evaluateTransaction(
+      "FetchAllDiabetesRecords"
+    );
+    const resultsJson = JSON.parse(result.toString());
+
+    // Retrieve IPFS data for each record
+    const fetches = resultsJson.map(async (record) => {
+      const cid = record.LabReports.disease.diabetes["/"];
+      const { fileContent } = await getFile(cid);
+      return {
+        ...record,
+        LabReports: {
+          disease: {
+            diabetes: fileContent,
+          },
+        }
+      };
+    });
+
+    const detailedRecords = await Promise.all(fetches);
+
+    res.json({
+      success: true,
+      message:
+        "All diabetes records retrieved successfully, with detailed data from IPFS!",
+      data: detailedRecords,
+    });
+  } catch (error) {
+    console.error(`Failed to retrieve diabetes records: ${error}`);
     res.status(500).json({ error: error.message });
   }
 };

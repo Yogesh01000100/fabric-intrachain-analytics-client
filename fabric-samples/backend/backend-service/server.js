@@ -49,6 +49,7 @@ const startServer = async () => {
         controllerMethod: "getHospitalRole50",
       },
       { path: "/fetch-record", controllerMethod: "FetchEHR" },
+      { path: "/fetch-all-record", controllerMethod: "FetchAllDiabetesRecords" },
     ];
 
     // Register routes

@@ -168,6 +168,52 @@ class EHRContract extends Contract {
         return ipfsHashBuffer.toString();
     }
 
+    async FetchAllDiabetesRecords(ctx) {
+        const validUser = await checkCF1Role(ctx.stub);
+        const validCapability = await checkC1(ctx.stub);
+        if (!validUser || !validCapability) {
+            throw new Error('Access denied. Insufficient permissions.');
+        }
+    
+        // Construct the Mango query
+        const query = {
+            selector: {
+                "LabReports.disease.diabetes": {
+                    "$exists": true
+                }
+            },
+            fields: ["_id", "LabReports.disease.diabetes"]
+        };
+    
+        const queryString = JSON.stringify(query);
+    
+        // GetQueryResult performs a rich query against the state database
+        const queryResults = await ctx.stub.getQueryResult(queryString);
+    
+        // Collect all records
+        const results = [];
+        while (true) {
+            const res = await queryResults.next();
+            if (res.value && res.value.value.toString()) {
+                let Record;
+                try {
+                    Record = JSON.parse(res.value.value.toString('utf8'));
+                } catch (err) {
+                    console.log(err);
+                    Record = res.value.value.toString('utf8');
+                }
+                results.push(Record);
+            }
+            if (res.done) {
+                await queryResults.close();
+                console.info('end of data');
+                break;
+            }
+        }
+    
+        return JSON.stringify(results);
+    }   
+
 
     async UserExists(ctx, key) {
         const record = await ctx.stub.getState(key);
