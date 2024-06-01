@@ -8,7 +8,7 @@ const { buildCCPOrg1, buildWallet } = require('./AppUtil.js');
 const genericData=require('./GenericData.js');
 
 const app = express();
-const port = 3004;
+const port = 3001;
 
 const mspOrg1 = 'Org1MSP';
 const walletPath = path.join(__dirname, 'wallet');

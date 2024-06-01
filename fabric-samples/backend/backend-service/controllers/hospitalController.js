@@ -1,9 +1,8 @@
 import { gateways } from "../network/fabricNetwork.js";
-
-import User from "../models/userModel.js";
-import axios from "axios";
 import { create } from "kubo-rpc-client";
 import { spawn } from "child_process";
+import axios from "axios";
+import fs from 'fs';
 
 const client = create();
 
@@ -13,22 +12,22 @@ function encryptWithPython(jsonData) {
       "/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/controllers/python_service.py",
     ]);
 
-    let encryptedData = "";
-    pythonProcess.stdout.on("data", (data) => {
-      encryptedData += data.toString();
+    pythonProcess.stdout.on('data', (data) => {
+      console.log(`stdout: ${data}`);
     });
 
-    pythonProcess.stderr.on("data", (data) => {
+    pythonProcess.stderr.on('data', (data) => {
       console.error(`stderr: ${data}`);
       reject(data.toString());
     });
 
-    pythonProcess.on("close", (code) => {
+    pythonProcess.on('close', (code) => {
       if (code !== 0) {
         console.log(`Python script exited with code ${code}`);
         reject(`Python script exited with code ${code}`);
       } else {
-        resolve(encryptedData);
+        const filePath = '/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/encrypted_data.dat';
+        resolve(filePath);
       }
     });
     pythonProcess.stdin.write(jsonData);
@@ -46,20 +45,19 @@ export const uploadEHR = async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Request body is empty" });
     }
-    const jsonData = JSON.stringify(req.body);
-    const encryptedData = await encryptWithPython(jsonData);
-
-    async function addToIpfs(encryptedData) {
+    async function addToIpfs(filePath) {
+      const fileBuffer = fs.readFileSync(filePath);
       try {
-        const { cid } = await client.add(encryptedData);
+        const { cid } = await client.add(fileBuffer);
         console.log(`Data added to IPFS with CID: ${cid}`);
         return cid;
       } catch (error) {
         console.error("Error adding data to IPFS:", error);
+        throw error;
       }
     }
-
-    const cid = await addToIpfs(encryptedData);
+    const filePath = await encryptWithPython(JSON.stringify(req.body));
+    const cid = await addToIpfs(filePath);
 
     console.log(`File uploaded with CID: ${cid}`);
 
@@ -115,15 +113,6 @@ export const FetchEHR = async (req, res) => {
   }
 };
 
-async function getFile(cid) {
-  let data = [];
-  for await (const chunk of client.cat(cid)) {
-    data.push(chunk);
-  }
-  const fileContent = Buffer.concat(data).toString("utf8");
-  return { fileContent };
-}
-
 export const FetchAllDiabetesRecords = async (req, res) => {
   const channelName = "mychannel";
   const chaincodeName = "basic";
@@ -132,22 +121,19 @@ export const FetchAllDiabetesRecords = async (req, res) => {
   try {
     const network = await adminGateway.getNetwork(channelName);
     const contract = network.getContract(chaincodeName);
-    const result = await contract.evaluateTransaction(
-      "FetchAllDiabetesRecords"
-    );
+    const result = await contract.evaluateTransaction("FetchAllDiabetesRecords");
     const resultsJson = JSON.parse(result.toString());
 
-    // Retrieve IPFS data for each record
     const fetches = resultsJson.map(async (record) => {
       const cid = record.LabReports.disease.diabetes["/"];
-      const { fileContent } = await getFile(cid);
+      const data = [];
+      for await (const chunk of client.cat(cid)) {
+        data.push(chunk);
+      }
+      const fileContent = Buffer.concat(data);
+
       return {
-        ...record,
-        LabReports: {
-          disease: {
-            diabetes: fileContent,
-          },
-        }
+        fileContent
       };
     });
 
@@ -155,8 +141,7 @@ export const FetchAllDiabetesRecords = async (req, res) => {
 
     res.json({
       success: true,
-      message:
-        "All diabetes records retrieved successfully, with detailed data from IPFS!",
+      message: "All diabetes records retrieved successfully, with detailed data from IPFS!",
       data: detailedRecords,
     });
   } catch (error) {

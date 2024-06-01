@@ -4,11 +4,11 @@ import express from "express";
 //import mongoose from "mongoose";
 import cacheMiddleware from "./middlewares/cacheMiddleware.js";
 import * as hospitalController from "./controllers/hospitalController.js";
-import { initializeGateways, gateways } from "./network/fabricNetwork.js";
+import { initializeGateways } from "./network/fabricNetwork.js";
 import config from "./config/index.js";
 
 const app = express();
-const port = 3009;
+const port = 3010;
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -52,7 +52,6 @@ const startServer = async () => {
       { path: "/fetch-all-record", controllerMethod: "FetchAllDiabetesRecords" },
     ];
 
-    // Register routes
     routes.forEach(({ path, cacheTime, controllerMethod }) => {
       app.get(
         path,

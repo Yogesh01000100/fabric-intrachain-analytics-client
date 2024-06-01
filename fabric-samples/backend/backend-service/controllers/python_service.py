@@ -1,58 +1,63 @@
-import sys
-import json
 import os
 import tenseal as ts
 import pandas as pd
 import numpy as np
-import base64
-
+import sys
+import json
 
 context_file = '/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/controllers/encryption_context.tenseal'
+output_file = 'encrypted_data.dat'
+test_index = 0
 
 def load_context_from_file(file_name):
-    #logging.info("Loading encryption context from file.")
     with open(file_name, 'rb') as f:
         context_bytes = f.read()
     ctx = ts.context_from(context_bytes)
-    #logging.info("Encryption context loaded successfully.")
     return ctx
 
-def prepare_data(data):
-    #logging.info("Preparing data for encryption.")
-    if isinstance(data, dict):
-        if not any(isinstance(v, list) for v in data.values()):
-            data = [data]
-
-    df = pd.DataFrame(data)
+def prepare_data(df):
+    print("Original DataFrame:\n", df)
     df.dropna(inplace=True)
     df.drop(columns=["Patient number"], inplace=True)
-    df.replace({"Diabetes": {"No diabetes": 0, "Diabetes": 1},
-                "Gender": {"female": 0, "male": 1}}, inplace=True)
-    df = df.astype({"Diabetes": np.float32, "Gender": np.float32})
-    df = (df - df.mean()) / df.std() 
-    #logging.info("Data prepared and normalized.")
-    return df.values.tolist()
+    df.replace({"Gender": {"female": 0, "male": 1}}, inplace=True)
+    df = df.astype(np.float32)
+    if df.shape[0] > 1:
+        df = (df - df.mean()) / df.std()
+    else:
+        df = df - df.mean()
+    print("DataFrame after preprocessing:\n", df)
+    return df
 
 def encrypt_data(ctx, data):
-    #logging.info("Encrypting data.")
-    encrypted_vectors = [ts.ckks_vector(ctx, record) for record in data]
-    serialized_data = [base64.b64encode(vec.serialize()).decode('utf-8') for vec in encrypted_vectors]
-    #logging.info("Data encrypted and serialized successfully.")
-    return serialized_data
+    encrypted_vectors = [ts.ckks_vector(ctx, record.tolist()) for record in data.to_numpy()]
+    return encrypted_vectors
+
+def save_encrypted_data(encrypted_data, file_path):
+    with open(file_path, 'wb') as f:
+        for vec in encrypted_data:
+            vec_bytes = vec.serialize()
+            length_bytes = len(vec_bytes).to_bytes(4, byteorder='big')
+            f.write(length_bytes)
+            f.write(vec_bytes)
 
 if __name__ == '__main__':
     if not os.path.exists(context_file):
-        #logging.error("Context file does not exist.")
+        print("Context file does not exist.")
         sys.exit(1)
 
     ctx = load_context_from_file(context_file)
-    input_data = sys.stdin.read()
-    try:
-        json_data = json.loads(input_data)
-    except json.JSONDecodeError as e:
-        #logging.error(f"Error decoding JSON: {e}")
-        sys.exit(1)
-        
-    prepared_data = prepare_data(json_data)
-    encrypted_data = encrypt_data(ctx, prepared_data)
-    print(json.dumps({"encrypted_data": encrypted_data}))
+
+    json_data = sys.stdin.read()
+    print(json_data)
+    data = json.loads(json_data)
+
+    df = pd.DataFrame([data])
+    prepared_data = prepare_data(df)
+
+    row_to_encrypt = prepared_data.iloc[[test_index]]
+    print(f"Data to encrypt (size {row_to_encrypt.shape[1]}):", row_to_encrypt.values)
+    encrypted_data = encrypt_data(ctx, row_to_encrypt)
+
+    save_encrypted_data(encrypted_data, output_file)
+
+    print(f"Encrypted data has been saved to {output_file}")

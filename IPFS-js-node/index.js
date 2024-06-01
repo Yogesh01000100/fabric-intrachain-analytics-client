@@ -63,37 +63,4 @@ async function handleMultipleFiles() {
     fs.writeFileSync('response_times.csv', csvContent);
 }
 
-async function fetchContentFromIPFS(cid) {
-    try {
-        const startTime = performance.now();
-        let data = [];
-        for await (const chunk of client.cat(cid)) {
-            data.push(chunk);
-        }
-        const fileContent = Buffer.concat(data);
-        const endTime = performance.now();
-        const retrieveTime = endTime - startTime;
-
-        // Log to console
-        console.log(`Time taken to retrieve content: ${retrieveTime}ms`);
-        const decodedContent = new TextDecoder().decode(fileContent);
-        console.log(`Retrieved content: ${decodedContent}`);
-
-        // Write retrieved content to a CSV file
-        fs.writeFileSync('fetched_content.csv', `"File Content"\n"${decodedContent.replace(/"/g, '""')}"`);
-
-        // Write response times to another CSV file
-        const responseTimesContent = `CID,Retrieve Time (ms)\n"${cid}",${retrieveTime}`;
-        fs.writeFileSync('response_times.csv', responseTimesContent);
-
-    } catch (error) {
-        console.error(`Failed to fetch content: ${error}`);
-    }
-}
-
-fetchContentFromIPFS("QmSLyUUfykFp51HLhuEdPhMV6ewnEYRF98adhSy6UD6Kco").catch(console.error);
-
-//handleMultipleFiles().catch(console.error);
-
-//QmSLyUUfykFp51HLhuEdPhMV6ewnEYRF98adhSy6UD6Kco
-//QmUYYVaHLpobSW2eFQRUC1oE4oZwLep6nk5hQ8KfQQMKgn
+handleMultipleFiles().catch(console.error);

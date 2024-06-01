@@ -1,4 +1,4 @@
 **/node_modules/
-ML/heart.csv
-ML/heart_train.py
-ML/ipfs_client/training_folder
+*package-lock.json
+*.tenseal
+*.dat
