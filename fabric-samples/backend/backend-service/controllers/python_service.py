@@ -5,7 +5,8 @@ import numpy as np
 import sys
 import json
 
-context_file = '/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/controllers/encryption_context.tenseal'
+username = os.getenv('USER')
+context_file = os.path.join('/home', username, 'intrachain-client-network', 'fabric-samples', 'backend', 'backend-service', 'controllers', 'encryption_context.tenseal')
 output_file = 'encrypted_data.dat'
 test_index = 0
 

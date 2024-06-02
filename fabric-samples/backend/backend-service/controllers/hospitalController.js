@@ -3,13 +3,15 @@ import { create } from "kubo-rpc-client";
 import { spawn } from "child_process";
 import axios from "axios";
 import fs from 'fs';
+import os from 'os';
 
+const homeDirectory = os.homedir();
 const client = create();
 
 function encryptWithPython(jsonData) {
   return new Promise((resolve, reject) => {
     const pythonProcess = spawn("python", [
-      "/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/controllers/python_service.py",
+      `${homeDirectory}/intrachain-client-network/fabric-samples/backend/backend-service/controllers/python_service.py`,
     ]);
 
     pythonProcess.stdout.on('data', (data) => {
@@ -26,7 +28,7 @@ function encryptWithPython(jsonData) {
         console.log(`Python script exited with code ${code}`);
         reject(`Python script exited with code ${code}`);
       } else {
-        const filePath = '/home/yogesh/intrachain-client-network/fabric-samples/backend/backend-service/encrypted_data.dat';
+        const filePath = `${homeDirectory}/intrachain-client-network/fabric-samples/backend/backend-service/encrypted_data.dat`;
         resolve(filePath);
       }
     });
@@ -56,6 +58,7 @@ export const uploadEHR = async (req, res) => {
         throw error;
       }
     }
+
     const filePath = await encryptWithPython(JSON.stringify(req.body));
     const cid = await addToIpfs(filePath);
 
@@ -116,7 +119,7 @@ export const FetchEHR = async (req, res) => {
 export const FetchAllDiabetesRecords = async (req, res) => {
   const channelName = "mychannel";
   const chaincodeName = "basic";
-  const adminGateway = gateways["15cf6f0c-c698-5124-96fe-086b68417334"];
+  const adminGateway = gateways["admin"]; // admin priviledges
 
   try {
     const network = await adminGateway.getNetwork(channelName);

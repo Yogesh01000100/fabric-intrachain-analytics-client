@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const app = express();
 app.use(express.json());
 const port = 3008;
-const backendUrl = 'http://localhost:3009';
+const backendUrl = 'http://localhost:3010';
 
 app.get('/fetch-diabetes-record', async (req, res) => {
     try {

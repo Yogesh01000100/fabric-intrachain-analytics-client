@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import os
 
 # Load and preprocess the data
-data_path = "/home/yogesh/intrachain-client-network/Analytics/dataset.csv"
+username = os.getenv('USER')
+data_path = os.path.join('/home', username, 'intrachain-client-network', 'Analytics', 'dataset.csv')
 data = pd.read_csv(data_path)
 data = data.dropna()
 data = data.drop(columns=["Patient number"])
