@@ -25,7 +25,7 @@ async function getFile(cid) {
 }
 
 async function handleMultipleFiles() {
-    const numberOfFiles = 2000;
+    const numberOfFiles = 1000;
     const files = [];
     const csvHeader = 'File Number,CID,Upload Time,Retrieve Time\n';
     let csvContent = csvHeader;

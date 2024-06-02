@@ -1,7 +1,7 @@
 # Dependencies:
-- Node.js
+- Node.js ^18
 - Docker and Docker Compose
-- Python
+- Python ==3.10.x
 - Git
 
 ## Docker steps:
@@ -31,11 +31,17 @@ sudo systemctl status docker
 sudo apt install docker-compose
 ```
 ## Network Creation steps:
+
+chmod +x __.sh first time
+
 ```bash
 ./install-fabric.sh b
 ```
 ```bash
 ./create-network.sh
+```
+```bash
+./create-ipfs-service.sh
 ```
 ```bash
 sudo systemctl start ipfs-node.service  # (start the ipfs node)

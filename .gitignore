@@ -2,3 +2,6 @@
 *package-lock.json
 *.tenseal
 *.dat
+*.gz
+/kubo
+*.log

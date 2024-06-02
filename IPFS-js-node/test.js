@@ -41,4 +41,4 @@ async function handleIPFS(filePath) {
     }
 }
 
-handleIPFS('sample.txt').catch(console.error);
+handleIPFS('sample.csv').catch(console.error);

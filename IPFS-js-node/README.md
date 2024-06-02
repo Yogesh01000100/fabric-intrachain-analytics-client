@@ -1,5 +1,5 @@
 ```markdown
-# Setting up a Private IPFS Node
+# Setting up a IPFS Node
 
 ## System Information
 
@@ -94,6 +94,10 @@ ipfs daemon
     ```sh
     sudo systemctl start ipfs-node.service
     ```
+5. Stop the service:
+    ```sh
+    sudo systemctl stop ipfs-node.service
+    ```
 
 ## Check Service Status
 
@@ -150,10 +154,3 @@ sudo ufw allow 4001
 sudo ufw allow 5001
 sudo ufw allow 8080
 ```
-
-## Conclusion
-
-Your private IPFS node is now set up and ready to use. You can add and retrieve files as demonstrated above.
-```
-
-Make sure to replace placeholders like `<your-username>` and `<your-group>` with your actual system username and group.
